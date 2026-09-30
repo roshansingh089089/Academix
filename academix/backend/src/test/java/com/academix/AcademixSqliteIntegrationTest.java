@@ -144,6 +144,18 @@ class AcademixSqliteIntegrationTest {
     }
 
     @Test
+    void schoolSupportsPartialCaseInsensitiveFieldAndGlobalSearch() {
+        long id = service.create(request("SCHOOL-1", "School Student", "Pune", "JEE", "ACTIVE")).id();
+        var student = students.findById(id).orElseThrow();
+        student.setSchoolName("Delhi Public School");
+        students.saveAndFlush(student);
+
+        assertEquals(1, service.search(null, Map.of("schoolName", "public sch"), 0, 50, "id", "asc").totalElements());
+        assertEquals(1, service.search("dELHi pubLIC", Map.of(), 0, 50, "id", "asc").totalElements());
+        assertEquals(0, service.search(null, Map.of("schoolName", "unrelated"), 0, 50, "id", "asc").totalElements());
+    }
+
+    @Test
     void sqliteSafetyPragmasAreEnabled() throws Exception {
         try (var connection = dataSource.getConnection(); var statement = connection.createStatement()) {
             try (var result = statement.executeQuery("PRAGMA foreign_keys")) {
@@ -184,8 +196,8 @@ class AcademixSqliteIntegrationTest {
         students.saveAllAndFlush(List.of(pune, mumbai, delhi));
 
         var combined = service.search("Pune", Map.of(
-                "course", "JEE", "className", "Class 10", "state", "Maharashtra", "city", "Pune",
-                "batch", "Alpha", "status", "ACTIVE", "source", "Website"
+                "course", "JE", "className", "10", "state", "Maha", "city", "Pun",
+                "batch", "Alp", "status", "ACTIVE", "source", "Web"
         ), 0, 50, "studentCode", "asc");
         assertEquals(1, combined.totalElements());
         assertEquals("OPT-1", combined.content().getFirst().studentCode());
@@ -201,7 +213,7 @@ class AcademixSqliteIntegrationTest {
                 .andExpect(jsonPath("$.statuses.length()").value(2))
                 .andExpect(jsonPath("$.sources.length()").value(2));
 
-        mockMvc.perform(get("/api/students/filter-options").param("state", "maharashtra"))
+        mockMvc.perform(get("/api/students/filter-options").param("state", "maha"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.cities.length()").value(2))
                 .andExpect(jsonPath("$.cities[0]").value("Mumbai"))

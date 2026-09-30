@@ -7,7 +7,7 @@ import{exportStudents,getApiErrorMessage,getDashboard,getStudents}from'./api';
 import{useDebounce}from'./hooks/useDebounce';
 
 const emptyDashboard={totalStudents:0,activeStudents:0,inactiveStudents:0,totalCourses:0,totalBatches:0,totalImports:0,courses:[],cities:[],recentImports:[]};
-const emptyFilters={fullName:'',phone:'',email:'',studentCode:'',city:'',state:'',className:'',course:'',batch:'',status:'',source:'',ageFrom:'',ageTo:'',admissionFrom:'',admissionTo:''};
+const emptyFilters={fullName:'',phone:'',email:'',studentCode:'',schoolName:'',city:'',state:'',className:'',course:'',batch:'',status:'',source:'',ageFrom:'',ageTo:'',admissionFrom:'',admissionTo:''};
 
 export default function App(){
  const[active,setActive]=useState('Dashboard'),[side,setSide]=useState(false),[query,setQueryState]=useState('');
