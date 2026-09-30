@@ -1,7 +1,6 @@
 import axios from'axios';
 
-const configuredOrigin=(import.meta.env.VITE_API_BASE_URL||'').replace(/\/$/,'');
-export const api=axios.create({baseURL:`${configuredOrigin}/api`,timeout:15000});
+export const api=axios.create({baseURL:'/api',timeout:15000});
 export const getStudents=params=>api.get('/students',{params}).then(r=>r.data);
 export const getDashboard=()=>api.get('/dashboard/stats').then(r=>r.data);
 export const getImports=params=>api.get('/imports',{params}).then(r=>r.data);

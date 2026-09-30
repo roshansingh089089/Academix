@@ -65,7 +65,7 @@ The frontend must be deployed with `frontend/` as the Vercel project root. Befor
 https://replace-with-backend-host.example.com
 ```
 
-with the real HTTPS origin of the deployed Spring Boot service. Keep `/api/:path*` on both sides of the rewrite. The API rewrite is listed before the SPA fallback so API calls never resolve to `index.html`. `VITE_API_BASE_URL` should normally remain unset: relative `/api` requests are required for the single-public-URL architecture.
+with the real HTTPS origin of the deployed Spring Boot service. Keep `/api/:path*` on both sides of the rewrite. The API rewrite is listed before the SPA fallback so API calls never resolve to `index.html`. The runtime Axios client always uses `/api`; it does not accept a production backend-origin override.
 
 The backend currently uses SQLite and has not been migrated to a managed database. A production host must provide a persistent mounted disk and set:
 
