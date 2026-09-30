@@ -168,6 +168,14 @@ class AcademixSqliteIntegrationTest {
                 .andExpect(jsonPath("$.message").value("Minimum age must be a whole number"));
     }
 
+    @Test
+    void healthEndpointExposesOnlyServiceStatus() throws Exception {
+        mockMvc.perform(get("/api/health"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("UP"))
+                .andExpect(jsonPath("$.database").doesNotExist());
+    }
+
     private StudentRequest request(String code, String name, String city, String course, String status) {
         return new StudentRequest(
                 code, null, null, null, name, "9876543210", null,

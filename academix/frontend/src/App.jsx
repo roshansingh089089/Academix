@@ -3,7 +3,7 @@ import Sidebar from'./components/Sidebar';
 import TopNavbar from'./components/TopNavbar';
 import Dashboard from'./pages/Dashboard';
 import{StudentsPage,ImportPage,ImportHistoryPage,Placeholder}from'./pages/OtherPages';
-import{getDashboard,getStudents}from'./api';
+import{getApiErrorMessage,getDashboard,getStudents}from'./api';
 import{useDebounce}from'./hooks/useDebounce';
 
 const emptyDashboard={totalStudents:0,activeStudents:0,inactiveStudents:0,totalCourses:0,totalBatches:0,totalImports:0,courses:[],cities:[],recentImports:[]};
@@ -50,4 +50,4 @@ export default function App(){
 }
 
 function clean(values){return Object.fromEntries(Object.entries(values).filter(([,value])=>value!==''&&value!=null))}
-function apiMessage(error){return error.response?.data?.message||'Unable to load data. Confirm that the Academix backend is running.'}
+function apiMessage(error){return getApiErrorMessage(error)}

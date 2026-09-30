@@ -47,7 +47,42 @@ npm install
 npm run dev
 ```
 
-Open `http://localhost:5173`. No PostgreSQL service, username, password, or database creation is needed. The UI uses representative dashboard data if the API is offline; when the backend is available it automatically uses live statistics and search results.
+Open `http://localhost:5173`. No PostgreSQL service, username, password, or database creation is needed. Backend/network failures are shown explicitly rather than being converted into empty or demo results.
+
+During development the browser calls relative `/api/*` URLs. Vite proxies those requests to `http://localhost:8080`, so the frontend uses the same URL shape locally and in production.
+
+## Vercel frontend and backend deployment
+
+The production request path is:
+
+```text
+Browser -> Vercel React frontend -> /api/* rewrite -> public Spring Boot backend -> SQLite
+```
+
+The frontend must be deployed with `frontend/` as the Vercel project root. Before deploying, replace this placeholder in `frontend/vercel.json`:
+
+```text
+https://replace-with-backend-host.example.com
+```
+
+with the real HTTPS origin of the deployed Spring Boot service. Keep `/api/:path*` on both sides of the rewrite. The API rewrite is listed before the SPA fallback so API calls never resolve to `index.html`. `VITE_API_BASE_URL` should normally remain unset: relative `/api` requests are required for the single-public-URL architecture.
+
+The backend currently uses SQLite and has not been migrated to a managed database. A production host must provide a persistent mounted disk and set:
+
+```bash
+SPRING_PROFILES_ACTIVE=production
+ACADEMIX_DB_PATH=/mounted/persistent/path/academix.db
+SERVER_PORT=8080 # omit when the provider supplies PORT
+MAX_UPLOAD_SIZE=100MB
+```
+
+`ALLOWED_ORIGINS` accepts a comma-separated list for intentional direct browser-to-backend access. It is not needed for normal same-origin requests through the Vercel rewrite. Do not use `*`.
+
+SQLite is safe only for a single backend instance sharing one persistent disk. Ephemeral filesystems will lose data on restart or redeployment, and multiple independently scaled instances must not use separate SQLite files. A later move to PostgreSQL would require restoring its JDBC driver, dialect, migrations, and provider-supplied datasource credentials; this deployment-preparation change does not perform that database migration.
+
+### File upload constraint
+
+The browser continues sending `FormData` without manually setting `Content-Type`, preserving the multipart boundary and upload progress. Spring accepts up to `MAX_UPLOAD_SIZE`, but the Vercel external rewrite and backend provider can enforce lower request-size or timeout limits. Vercel documents a maximum 120-second external rewrite response time. Validate representative production Excel files through the deployed rewrite; if the chosen path rejects large bodies, direct-to-storage/background import architecture will be required rather than increasing only Spring's limit.
 
 ## API overview
 
@@ -58,6 +93,7 @@ Open `http://localhost:5173`. No PostgreSQL service, username, password, or data
 - `POST /api/imports` — batched CSV/XLS/XLSX import
 - `GET /api/imports` — import history
 - `GET /api/dashboard/stats` — efficient aggregate dashboard data
+- `GET /api/health` — minimal backend availability check
 
 Student list filters include gender, age range, location, school, class, course, batch, stream, academic year, admission dates, status, and source. Use `q` for the global search and `page`, `size`, `sort`, and `direction` for result navigation.
 
