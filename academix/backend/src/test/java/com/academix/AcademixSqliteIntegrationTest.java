@@ -12,7 +12,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.test.web.servlet.MockMvc;
 import javax.sql.DataSource;
 
 import java.io.ByteArrayOutputStream;
@@ -21,14 +23,18 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @SpringBootTest
+@AutoConfigureMockMvc
 class AcademixSqliteIntegrationTest {
     @Autowired StudentService service;
     @Autowired StudentRepository students;
     @Autowired ImportJobRepository jobs;
     @Autowired StudentFileImporter importer;
     @Autowired DataSource dataSource;
+    @Autowired MockMvc mockMvc;
 
     @BeforeEach
     void clearDatabase() {
@@ -111,6 +117,32 @@ class AcademixSqliteIntegrationTest {
     }
 
     @Test
+    void fieldSearchCombinesWithGlobalSearchFiltersSortingAndPagination() {
+        service.create(request("FILTER-003", "Ananya Singh", "Pune", "JEE", "ACTIVE"));
+        service.create(request("FILTER-001", "Ananya Rao", "Pune", "NEET", "ACTIVE"));
+        service.create(request("FILTER-002", "Kabir Singh", "Delhi", "JEE", "INACTIVE"));
+
+        assertEquals(2, service.search(null, Map.of("fullName", "ananya"), 0, 50, "id", "asc").totalElements());
+        assertEquals(1, service.search(null, Map.of("phone", "7654", "email", "filter-001"), 0, 50, "id", "asc").totalElements());
+        assertEquals(1, service.search(null, Map.of("studentCode", "003"), 0, 50, "id", "asc").totalElements());
+
+        var combined = service.search("Singh", Map.of("city", "pune", "course", "jee", "status", "active"),
+                0, 1, "studentCode", "desc");
+        assertEquals(1, combined.totalElements());
+        assertEquals("FILTER-003", combined.content().getFirst().studentCode());
+        assertFalse(combined.hasNext());
+
+        var cleared = service.search(null, Map.of(), 0, 2, "studentCode", "asc");
+        assertEquals(3, cleared.totalElements());
+        assertEquals("FILTER-001", cleared.content().getFirst().studentCode());
+        assertTrue(cleared.hasNext());
+
+        var invalidAge = assertThrows(IllegalArgumentException.class,
+                () -> service.search(null, Map.of("ageFrom", "not-a-number"), 0, 50, "id", "asc"));
+        assertEquals("Minimum age must be a whole number", invalidAge.getMessage());
+    }
+
+    @Test
     void sqliteSafetyPragmasAreEnabled() throws Exception {
         try (var connection = dataSource.getConnection(); var statement = connection.createStatement()) {
             try (var result = statement.executeQuery("PRAGMA foreign_keys")) {
@@ -126,6 +158,14 @@ class AcademixSqliteIntegrationTest {
                 assertTrue(result.getInt(1) >= 5000);
             }
         }
+    }
+
+    @Test
+    void invalidFilterReturnsStructuredBadRequest() throws Exception {
+        mockMvc.perform(get("/api/students").param("ageFrom", "not-a-number"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.message").value("Minimum age must be a whole number"));
     }
 
     private StudentRequest request(String code, String name, String city, String course, String status) {
