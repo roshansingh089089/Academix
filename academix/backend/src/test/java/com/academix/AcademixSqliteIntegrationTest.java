@@ -24,6 +24,7 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.asyncDispatch;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @SpringBootTest
@@ -166,6 +167,91 @@ class AcademixSqliteIntegrationTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status").value(400))
                 .andExpect(jsonPath("$.message").value("Minimum age must be a whole number"));
+    }
+
+    @Test
+    void filterOptionsAreDistinctSortedAndCitiesDependOnState() throws Exception {
+        long puneId = service.create(request("OPT-1", "Pune Student", "Pune", "JEE", "ACTIVE")).id();
+        long mumbaiId = service.create(request("OPT-2", "Mumbai Student", "Mumbai", "NEET", "INACTIVE")).id();
+        long delhiId = service.create(request("OPT-3", "Delhi Student", "Delhi", "jee", "ACTIVE")).id();
+
+        var pune = students.findById(puneId).orElseThrow();
+        pune.setState("Maharashtra"); pune.setClassName("Class 10"); pune.setBatch("Alpha"); pune.setSource("Website");
+        var mumbai = students.findById(mumbaiId).orElseThrow();
+        mumbai.setState("Maharashtra"); mumbai.setClassName("Class 12"); mumbai.setBatch("Beta"); mumbai.setSource("Referral");
+        var delhi = students.findById(delhiId).orElseThrow();
+        delhi.setState("Delhi"); delhi.setClassName("Class 10"); delhi.setBatch("Alpha"); delhi.setSource("Website");
+        students.saveAllAndFlush(List.of(pune, mumbai, delhi));
+
+        var combined = service.search("Pune", Map.of(
+                "course", "JEE", "className", "Class 10", "state", "Maharashtra", "city", "Pune",
+                "batch", "Alpha", "status", "ACTIVE", "source", "Website"
+        ), 0, 50, "studentCode", "asc");
+        assertEquals(1, combined.totalElements());
+        assertEquals("OPT-1", combined.content().getFirst().studentCode());
+
+        mockMvc.perform(get("/api/students/filter-options"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.courses.length()").value(2))
+                .andExpect(jsonPath("$.classes[0]").value("Class 10"))
+                .andExpect(jsonPath("$.states[0]").value("Delhi"))
+                .andExpect(jsonPath("$.states[1]").value("Maharashtra"))
+                .andExpect(jsonPath("$.cities.length()").value(3))
+                .andExpect(jsonPath("$.batches.length()").value(2))
+                .andExpect(jsonPath("$.statuses.length()").value(2))
+                .andExpect(jsonPath("$.sources.length()").value(2));
+
+        mockMvc.perform(get("/api/students/filter-options").param("state", "maharashtra"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.cities.length()").value(2))
+                .andExpect(jsonPath("$.cities[0]").value("Mumbai"))
+                .andExpect(jsonPath("$.cities[1]").value("Pune"));
+    }
+
+    @Test
+    void csvExportUsesFiltersAndSortingWithoutTablePagination() throws Exception {
+        service.create(request("EXPORT-003", "Ananya Singh", "Pune", "JEE", "ACTIVE"));
+        service.create(request("EXPORT-001", "Ananya Rao", "Pune", "JEE", "ACTIVE"));
+        service.create(request("EXPORT-002", "Kabir Singh", "Delhi", "NEET", "INACTIVE"));
+
+        var pending = mockMvc.perform(get("/api/students/export")
+                        .param("q", "ananya")
+                        .param("city", "pune")
+                        .param("course", "jee")
+                        .param("status", "active")
+                        .param("sort", "studentCode")
+                        .param("direction", "asc")
+                        // Export deliberately ignores table pagination parameters.
+                        .param("page", "0")
+                        .param("size", "1"))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.request().asyncStarted())
+                .andExpect(content().contentTypeCompatibleWith("text/csv"))
+                .andExpect(header().string("Content-Disposition", org.hamcrest.Matchers.matchesPattern("attachment; filename=\"academix-students-.*\\.csv\"")))
+                .andReturn();
+        var response = mockMvc.perform(asyncDispatch(pending)).andExpect(status().isOk()).andReturn().getResponse();
+
+        String csv = response.getContentAsString(StandardCharsets.UTF_8);
+        assertTrue(csv.contains("EXPORT-001"));
+        assertTrue(csv.contains("EXPORT-003"));
+        assertFalse(csv.contains("EXPORT-002"));
+        assertTrue(csv.indexOf("EXPORT-001") < csv.indexOf("EXPORT-003"));
+        assertEquals(3, csv.lines().count()); // header plus both matches, despite size=1
+    }
+
+    @Test
+    void csvExportSupportsNoFiltersAndZeroResults() throws Exception {
+        service.create(request("ALL-001", "First Student", "Pune", "JEE", "ACTIVE"));
+        service.create(request("ALL-002", "Second Student", "Delhi", "NEET", "INACTIVE"));
+
+        var allPending = mockMvc.perform(get("/api/students/export")).andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.request().asyncStarted()).andReturn();
+        String all = mockMvc.perform(asyncDispatch(allPending)).andExpect(status().isOk()).andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+        assertEquals(3, all.lines().count());
+
+        var emptyPending = mockMvc.perform(get("/api/students/export").param("city", "not-a-real-city"))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.request().asyncStarted()).andReturn();
+        String empty = mockMvc.perform(asyncDispatch(emptyPending)).andExpect(status().isOk()).andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+        assertEquals(1, empty.lines().count());
+        assertTrue(empty.contains("Student ID"));
     }
 
     @Test

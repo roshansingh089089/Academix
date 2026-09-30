@@ -3,7 +3,7 @@ import Sidebar from'./components/Sidebar';
 import TopNavbar from'./components/TopNavbar';
 import Dashboard from'./pages/Dashboard';
 import{StudentsPage,ImportPage,ImportHistoryPage,Placeholder}from'./pages/OtherPages';
-import{getApiErrorMessage,getDashboard,getStudents}from'./api';
+import{exportStudents,getApiErrorMessage,getDashboard,getStudents}from'./api';
 import{useDebounce}from'./hooks/useDebounce';
 
 const emptyDashboard={totalStudents:0,activeStudents:0,inactiveStudents:0,totalCourses:0,totalBatches:0,totalImports:0,courses:[],cities:[],recentImports:[]};
@@ -30,8 +30,10 @@ export default function App(){
 
  const setQuery=value=>{setQueryState(value);setPage(0)};
  const changeFilter=(name,value)=>{setFilters(current=>({...current,[name]:value}));setPage(0)};
+ const changeState=value=>{setFilters(current=>({...current,state:value,city:''}));setPage(0)};
  const clearFilters=()=>{setFilters(emptyFilters);setQueryState('');setSort('createdAt');setDirection('desc');setPage(0)};
  const changeSort=value=>{const[field,order]=value.split(':');setSort(field);setDirection(order);setPage(0)};
+ const exportFilteredStudents=()=>exportStudents({q:query||undefined,...clean(filters),sort,direction});
  const navigateStudents=preset=>{setActive('Students');if(preset){setFilters(current=>({...current,...preset}));setPage(0)}};
  const afterImport=()=>{setRefreshKey(key=>key+1);setActive('Students');setPage(0)};
  const tableProps={students,total,page:page+1,size:pageSize,onPageChange:p=>setPage(p-1),loading,error};
@@ -39,7 +41,7 @@ export default function App(){
  let content=active==='Dashboard'
   ?<Dashboard data={data} {...tableProps} navigate={setActive} navigateStudents={navigateStudents}/>
   :active==='Students'
-   ?<StudentsPage {...tableProps} query={query} onQueryChange={setQuery} filters={filters} onFilterChange={changeFilter} onClear={clearFilters} sort={`${sort}:${direction}`} onSortChange={changeSort} onPageSizeChange={size=>{setPageSize(size);setPage(0)}}/>
+   ?<StudentsPage {...tableProps} query={query} onQueryChange={setQuery} filters={filters} onFilterChange={changeFilter} onStateChange={changeState} onClear={clearFilters} sort={`${sort}:${direction}`} onSortChange={changeSort} onExport={exportFilteredStudents} onPageSizeChange={size=>{setPageSize(size);setPage(0)}}/>
    :active==='Import Data'
     ?<ImportPage onImported={afterImport}/>
     :active==='Import History'
