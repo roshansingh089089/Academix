@@ -93,7 +93,7 @@ The browser continues sending `FormData` without manually setting `Content-Type`
 - `POST /api/imports` — batched CSV/XLS/XLSX import
 - `GET /api/imports` — import history
 - `GET /api/dashboard/stats` — efficient aggregate dashboard data
-- `GET /api/health` — minimal backend availability check
+- `GET /api/healthz` — minimal backend availability check
 
 Student list filters include gender, age range, location, school, class, course, batch, stream, academic year, admission dates, status, and source. Use `q` for the global search and `page`, `size`, `sort`, and `direction` for result navigation.
 

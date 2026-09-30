@@ -268,7 +268,7 @@ class AcademixSqliteIntegrationTest {
 
     @Test
     void healthEndpointExposesOnlyServiceStatus() throws Exception {
-        mockMvc.perform(get("/api/health"))
+        mockMvc.perform(get("/api/healthz"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("UP"))
                 .andExpect(jsonPath("$.database").doesNotExist());
