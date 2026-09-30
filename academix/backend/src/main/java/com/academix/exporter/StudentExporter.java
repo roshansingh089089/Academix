@@ -1,0 +1,3 @@
+package com.academix.exporter;
+import com.academix.entity.Student;import com.opencsv.CSVWriter;import org.springframework.stereotype.Component;import java.io.*;import java.nio.charset.StandardCharsets;import java.util.stream.Stream;
+@Component public class StudentExporter {public void csv(Stream<Student> students,OutputStream output)throws IOException{try(var w=new CSVWriter(new OutputStreamWriter(output,StandardCharsets.UTF_8))){w.writeNext(new String[]{"Student ID","Name","Phone","Email","City","Class","Course","Batch","Status"});students.forEach(s->w.writeNext(new String[]{s.getStudentCode(),s.getFullName(),s.getPhone(),s.getEmail(),s.getCity(),s.getClassName(),s.getCourse(),s.getBatch(),s.getStatus()}));}}}

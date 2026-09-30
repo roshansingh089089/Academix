@@ -1,0 +1,10 @@
+spring:
+  datasource:
+    url: jdbc:sqlite:${ACADEMIX_DB_PATH:../data/academix.db}?foreign_keys=on&journal_mode=WAL&busy_timeout=5000
+    driver-class-name: org.sqlite.JDBC
+    hikari:
+      maximum-pool-size: 1
+      minimum-idle: 1
+      connection-timeout: 10000
+  jpa:
+    database-platform: org.hibernate.community.dialect.SQLiteDialect

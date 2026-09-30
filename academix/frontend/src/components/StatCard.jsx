@@ -1,0 +1,1 @@
+export default function StatCard({icon:Icon,label,value,change,note,tone}){return <div className="stat-card"><div className={`stat-icon ${tone}`}><Icon size={21}/></div><div className="stat-main"><span>{label}</span><strong>{Number(value).toLocaleString('en-IN')}</strong><div><b className={change?.startsWith('-')?'down':''}>{change}</b><small>{note}</small></div></div></div>}

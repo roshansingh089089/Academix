@@ -1,0 +1,26 @@
+spring:
+  application:
+    name: Academix
+  profiles:
+    default: local
+  servlet:
+    multipart:
+      max-file-size: ${MAX_UPLOAD_SIZE:100MB}
+      max-request-size: ${MAX_UPLOAD_SIZE:100MB}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: none
+    properties:
+      hibernate.jdbc.batch_size: 500
+      hibernate.order_inserts: true
+      hibernate.order_updates: true
+  flyway:
+    enabled: true
+server:
+  port: ${SERVER_PORT:8080}
+  error:
+    include-stacktrace: never
+logging:
+  level:
+    com.academix: INFO

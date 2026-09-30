@@ -1,0 +1,9 @@
+package com.academix.mapper;
+import com.academix.dto.*;
+import com.academix.entity.Student;
+import org.springframework.stereotype.Component;
+@Component public class StudentMapper {
+ public StudentResponse toResponse(Student s){ return new StudentResponse(s.getId(),s.getStudentCode(),s.getFullName(),s.getFirstName(),s.getMiddleName(),s.getLastName(),s.getPhone(),s.getAlternatePhone(),s.getEmail(),s.getGender(),s.getDateOfBirth(),s.getAge(),s.getFatherName(),s.getMotherName(),s.getGuardianName(),s.getGuardianPhone(),s.getAddressLine1(),s.getAddressLine2(),s.getCity(),s.getDistrict(),s.getState(),s.getPinCode(),s.getSchoolName(),s.getCollegeName(),s.getClassName(),s.getCourse(),s.getBatch(),s.getStream(),s.getAcademicYear(),s.getAdmissionDate(),s.getStatus(),s.getSource(),s.getRemarks(),s.getCreatedAt(),s.getUpdatedAt(),s.getVersion()); }
+ public Student fromRequest(StudentRequest r){ var s=new Student(); update(s,r); return s; }
+ public void update(Student s,StudentRequest r){ s.setStudentCode(r.studentCode());s.setFirstName(r.firstName());s.setMiddleName(r.middleName());s.setLastName(r.lastName());s.setFullName(r.fullName());s.setPhone(r.phone());s.setAlternatePhone(r.alternatePhone());s.setEmail(r.email());s.setGender(r.gender());s.setDateOfBirth(r.dateOfBirth());s.setAge(r.age());s.setFatherName(r.fatherName());s.setMotherName(r.motherName());s.setGuardianName(r.guardianName());s.setGuardianPhone(r.guardianPhone());s.setAddressLine1(r.addressLine1());s.setAddressLine2(r.addressLine2());s.setCity(r.city());s.setDistrict(r.district());s.setState(r.state());s.setPinCode(r.pinCode());s.setSchoolName(r.schoolName());s.setCollegeName(r.collegeName());s.setClassName(r.className());s.setCourse(r.course());s.setBatch(r.batch());s.setStream(r.stream());s.setAcademicYear(r.academicYear());s.setAdmissionDate(r.admissionDate());s.setStatus(r.status());s.setSource(r.source());s.setRemarks(r.remarks()); }
+}

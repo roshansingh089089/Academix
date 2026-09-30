@@ -1,0 +1,1 @@
+export default function StatusBadge({status}){let s=(status||'').toLowerCase();return <span className={`status ${s}`}>{status==='PARTIAL_SUCCESS'?'Partial':s.charAt(0).toUpperCase()+s.slice(1)}</span>}
